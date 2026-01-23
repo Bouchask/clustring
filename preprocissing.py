@@ -16,13 +16,6 @@ class Data :
         return data 
     def Scaler_data(self,data,list_feature_number):
         data[list_feature_number] = self.scaler.fit_transform(data[list_feature_number])
-        pca_data = self.pca.fit_transform(data[list_feature_number])
-        return data
-    def pca_data(self , data , list_feature_number ):
-        pca_data = self.pca.fit_transform(data[list_feature_number])
-        pca_data = pd.DataFrame(pca_data,columns = ["pca1","pca2"],index = data.index)
-        data.drop(list_feature_number , axis = 1 , inplace = True)
-        data = pd.concat([data,pca_data],axis = 1)
         return data
     def label_data(self,data,list_feature_object):
         label_code = self.oh.fit_transform(data[list_feature_object])
@@ -47,11 +40,16 @@ class Data :
         data = self.dateTo_Second(data,["Charging Start Time","Charging End Time"])
         list_feature_object = data.select_dtypes(include="object").columns
         
-        list_column_number = [name_column for name_column in data.columns if (776 < (data[name_column].nunique()))]
+        list_column_number = data.select_dtypes(include=np.number).columns
         list_feature_binaire = [name_column for name_column in list_feature_object if ((data[name_column].nunique()) == 2 )]
-        list_feature_ulticlasses =  [name_column for name_column in list_feature_object if (776>= (data[name_column].nunique()) >2 )]
+        list_feature_ulticlasses =  [name_column for name_column in list_feature_object if (data[name_column].nunique()) >2 ]
         data = self.label_data(data,list_feature_ulticlasses)
         data = self.binaire_feature(data,list_feature_binaire)
         data = self.Scaler_data(data,list_column_number)
-        data = self.pca_data(data , list_column_number)
+        return data,list_column_number
+    def pca_data(self , data , list_feature_number ):
+        pca_data = self.pca.fit_transform(data[list_feature_number])
+        pca_data = pd.DataFrame(pca_data,columns = ["pca1","pca2"],index = data.index)
+        data.drop(list_feature_number , axis = 1 , inplace = True)
+        data = pd.concat([data,pca_data],axis = 1)
         return data
