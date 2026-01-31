@@ -1,55 +1,44 @@
-from sklearn.preprocessing import StandardScaler,OneHotEncoder,LabelEncoder
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
 from sklearn.decomposition import PCA
-import numpy as np 
-import pandas as pd 
-class Data :
-    def __init__(self , url : str ):
-        self.data = pd.read_csv(url)
-        self.data = pd.DataFrame(self.data)
+
+class DataProcessor:
+    def __init__(self, file_path):
+        self.df = pd.read_csv(file_path)
         self.scaler = StandardScaler()
-        self.oh = OneHotEncoder(handle_unknown="ignore")
-        self.lc = LabelEncoder()
+        self.encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+        self.label = LabelEncoder()
         self.pca = PCA(n_components=2)
-    def clean_data(self,data):
-        data = data.dropna()
-        data = data.drop_duplicates()
-        return data 
-    def Scaler_data(self,data,list_feature_number):
-        data[list_feature_number] = self.scaler.fit_transform(data[list_feature_number])
-        return data
-    def label_data(self,data,list_feature_object):
-        label_code = self.oh.fit_transform(data[list_feature_object])
-        label_code = pd.DataFrame(label_code.toarray(),columns = self.oh.get_feature_names_out(list_feature_object),index = data.index)
-        data.drop(list_feature_object , axis = 1 , inplace = True)
-        data = pd.concat([data,label_code],axis = 1 )
-        return data 
-    def binaire_feature(self,data , list_feature):
-        for i in list_feature :
-            data[i] = self.lc.fit_transform(data[i])
-        return data 
-    def dateTo_Second(self,data,list_column_date): #date start - date End
-        data[list_column_date[1]] = pd.to_datetime(data[list_column_date[1]])
-        data[list_column_date[0]] = pd.to_datetime(data[list_column_date[0]])
-        data["Time_second"] = (data[list_column_date[1]] - data[list_column_date[0]]).dt.total_seconds()
-        data.drop(labels=list_column_date,axis=1,inplace=True)
-        return data
-    def preprocessing(self):
-        data = self.data.copy()
-        data = self.clean_data(data)
-        data.drop("User ID",axis = 1,inplace=True)
-        data = self.dateTo_Second(data,["Charging Start Time","Charging End Time"])
-        list_feature_object = data.select_dtypes(include="object").columns
-        
-        list_column_number = data.select_dtypes(include=np.number).columns
-        list_feature_binaire = [name_column for name_column in list_feature_object if ((data[name_column].nunique()) == 2 )]
-        list_feature_ulticlasses =  [name_column for name_column in list_feature_object if (data[name_column].nunique()) >2 ]
-        data = self.label_data(data,list_feature_ulticlasses)
-        data = self.binaire_feature(data,list_feature_binaire)
-        data = self.Scaler_data(data,list_column_number)
-        return data,list_column_number
-    def pca_data(self , data , list_feature_number ):
-        pca_data = self.pca.fit_transform(data[list_feature_number])
-        pca_data = pd.DataFrame(pca_data,columns = ["pca1","pca2"],index = data.index)
-        data.drop(list_feature_number , axis = 1 , inplace = True)
-        data = pd.concat([data,pca_data],axis = 1)
-        return data
+
+    def preprocess(self):
+        df = self.df.dropna().drop_duplicates()
+
+        if "Charging Start Time" in df.columns:
+            df["Charging Start Time"] = pd.to_datetime(df["Charging Start Time"])
+            df["Charging End Time"] = pd.to_datetime(df["Charging End Time"])
+            df["Duration_Sec"] = (
+                df["Charging End Time"] - df["Charging Start Time"]
+            ).dt.total_seconds()
+            df.drop(columns=["Charging Start Time", "Charging End Time"], inplace=True)
+
+        df.drop(columns=[c for c in ["User ID", "Charging Station ID"] if c in df.columns],
+                inplace=True)
+
+        obj_cols = df.select_dtypes(include="object").columns
+        for col in obj_cols:
+            if df[col].nunique() <= 2:
+                df[col] = self.label.fit_transform(df[col])
+            else:
+                enc = self.encoder.fit_transform(df[[col]])
+                enc_df = pd.DataFrame(
+                    enc,
+                    columns=self.encoder.get_feature_names_out([col]),
+                    index=df.index
+                )
+                df = pd.concat([df, enc_df], axis=1)
+                df.drop(col, axis=1, inplace=True)
+
+        scaled = self.scaler.fit_transform(df)
+        pca_2d = self.pca.fit_transform(scaled)
+
+        return df, scaled, pca_2d

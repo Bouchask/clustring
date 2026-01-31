@@ -1,0 +1,11 @@
+=== CLUSTERING METRICS REPORT ===
+
+K=2 | Silhouette=0.0397 | CH=48.53 | DB=4.5896 | BIC=16519.72
+K=3 | Silhouette=0.0576 | CH=49.62 | DB=3.9016 | BIC=10347.35
+K=4 | Silhouette=0.0673 | CH=45.10 | DB=3.5728 | BIC=-706.80
+K=5 | Silhouette=0.0791 | CH=44.10 | DB=3.2307 | BIC=-15943.26
+K=6 | Silhouette=0.0888 | CH=42.28 | DB=3.2285 | BIC=-18169.12
+K=7 | Silhouette=0.1041 | CH=43.70 | DB=2.7500 | BIC=-37173.01
+K=8 | Silhouette=0.0864 | CH=39.10 | DB=2.9217 | BIC=-32640.71
+K=9 | Silhouette=0.0683 | CH=35.50 | DB=3.1179 | BIC=-36645.70
+K=10 | Silhouette=0.0626 | CH=32.53 | DB=3.4850 | BIC=-32874.30
