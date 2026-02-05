@@ -5,25 +5,36 @@ from clustering import Clustering
 class MasterPipeline:
     def __init__(self, file_path):
         self.file_path = file_path
-        os.makedirs("results", exist_ok=True)
+        self.results_dir = "results"
+        os.makedirs(self.results_dir, exist_ok=True)
 
     def run(self):
-        print("1️⃣ Preprocessing...")
-        processor = DataProcessor(self.file_path)
-        clean_df, X, pca_2d = processor.preprocess()
+        print("1️⃣ Preprocessing & Suitability Check...")
+        processor = DataProcessor(self.file_path, results_dir=self.results_dir)
+        
+        # Now returns a flag 'use_pca'
+        clean_df, X_final, X_vis, use_pca = processor.preprocess()
+        
+        if use_pca:
+            print("   ✅ DECISION: PCA Applied. Clustering on Compressed Data.")
+        else:
+            print("   🚫 DECISION: PCA Rejected. Clustering on Raw Data.")
 
-        print("2️⃣ Computing metrics...")
-        cluster = Clustering(X, pca_2d)
+        print("2️⃣ Computing Metrics...")
+        cluster = Clustering(X_final, X_vis, results_dir=self.results_dir)
         metrics = cluster.compute_metrics()
 
         best_k = cluster.select_best_k(metrics)
-        print(f"✅ Best K selected mathematically: {best_k}")
+        print(f"✅ Best K selected: {best_k}")
 
-        print("3️⃣ Applying best solution...")
+        print("3️⃣ Finalizing...")
         clean_df["Cluster"] = cluster.apply_best_solution(best_k)
 
-        clean_df.to_csv("results/final_clusters.csv", index=False)
-        print("🎓 DONE — MASTER LEVEL OUTPUT READY")
+        output_path = os.path.join(self.results_dir, "final_clusters.csv")
+        clean_df.to_csv(output_path, index=False)
+        print("🎓 DONE — Results in 'results/' folder")
 
 if __name__ == "__main__":
-    MasterPipeline(r"C:\Users\VoxxF\Desktop\Projet\clustring\data\raw\ev_charging_patterns.csv").run()
+    # Update this path to your file location
+    file_path = r"C:\Users\VoxxF\Desktop\Projet\clustring\data\raw\ev_charging_patterns.csv"
+    MasterPipeline(file_path).run()
